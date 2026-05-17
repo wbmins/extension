@@ -1,0 +1,15 @@
+.gradle
+/local.properties
+/.idea/workspace.xml
+.DS_Store
+build/
+/captures
+.idea/
+*.iml
+repo/
+gen
+generated-src/
+.kotlin
+*.jks
+*.json
+*.db

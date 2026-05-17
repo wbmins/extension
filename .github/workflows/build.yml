@@ -1,0 +1,73 @@
+name: update and release
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 4 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ehentai extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      TZ: Asia/Shanghai
+      BUILD_DATE: ${{ github.run_id }}   # 占位，后面覆盖
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+
+      - name: Set build date
+        run: |
+          echo "BUILD_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
+      - name: Prepare signing key
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > signingkey.jks
+      - name: Update index
+        run: |
+          sed -i "s/^\([[:space:]]*extVersionCode[[:space:]]*=[[:space:]]*\).*/\1${BUILD_DATE}/" src/all/ehentai/build.gradle
+          sed -i "s/\"version\": \"1\.4\.[0-9]\+\"/\"version\": \"1.4.${BUILD_DATE}\"/" index.json
+          jq -c . index.json > index.min.json
+      - name: Update etagdb
+        run: |
+          bash scripts/update-etagdb.sh
+      - name: Build ehentai
+        env:
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew :src:all:ehentai:assembleRelease
+      - name: Bump version
+        run: |
+          rm -rf ./apk/*
+          for f in src/all/ehentai/build/outputs/apk/release/*-release.apk; do
+            mv -f "$f" "apk/$(basename "${f/-release.apk/.apk}")"
+          done
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "auto build ${BUILD_DATE}"
+          git push
+      - name: Clean up CI files
+        if: always()
+        run: rm -f signingkey.jks

@@ -1,0 +1,29 @@
+ext {
+    extName = 'E-Hentai'
+    extClass = '.EHFactory'
+    extVersionCode = 28
+    isNsfw = true
+}
+
+apply from: "$rootDir/common.gradle"
+
+def generatedEtagAssetsDir = file("$buildDir/generated/assets/etagDb")
+
+android {
+    sourceSets {
+        main {
+            assets.srcDir(generatedEtagAssetsDir)
+        }
+    }
+}
+
+tasks.register("copyEtagDb", Copy) {
+    def etagFile = rootProject.file("etag.db")
+    if (!etagFile.exists()) {
+        throw new GradleException("etag.db does not exist")
+    }
+    from etagFile
+    into generatedEtagAssetsDir
+}
+
+preBuild.dependsOn(copyEtagDb)
