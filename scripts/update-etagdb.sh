@@ -55,6 +55,7 @@ EOF
 
 # 5. 清理
 rm -f "$TEMP_TSV"
+rm -f "$JSON_FILE"
 echo "✅ 数据库构建完成: $DB_FILE"
 # 测试查询示例
 # sqlite3 etag.db "SELECT * FROM tags WHERE namespace = 'character' LIMIT 5;"

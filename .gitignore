@@ -11,5 +11,4 @@ gen
 generated-src/
 .kotlin
 *.jks
-*.json
 *.db

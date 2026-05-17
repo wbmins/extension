@@ -43,7 +43,10 @@ jobs:
       - name: Update index
         run: |
           sed -i "s/^\([[:space:]]*extVersionCode[[:space:]]*=[[:space:]]*\).*/\1${BUILD_DATE}/" src/all/ehentai/build.gradle
-          sed -i "s/\"version\": \"1\.4\.[0-9]\+\"/\"version\": \"1.4.${BUILD_DATE}\"/" index.json
+          jq --arg d "$BUILD_DATE" '
+          .[0].version = "1.4.\($d)" |
+          .[0].apk = "tachiyomi-all.ehentai-v1.4.\($d).apk"
+          ' index.json > /tmp/index.json && mv /tmp/index.json index.json
           jq -c . index.json > index.min.json
       - name: Update etagdb
         run: |
