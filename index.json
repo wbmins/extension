@@ -2,10 +2,10 @@
   {
     "name": "Tachiyomi: E-Hentai",
     "pkg": "eu.kanade.tachiyomi.extension.all.ehentai",
-    "apk": "tachiyomi-all.ehentai-v1.4.20260517.apk",
+    "apk": "tachiyomi-all.ehentai-v1.4.20260519.apk",
     "lang": "all",
     "code": 3,
-    "version": "1.4.20260517",
+    "version": "1.4.20260519",
     "nsfw": 1,
     "sources": [
       {
