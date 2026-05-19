@@ -11,8 +11,8 @@ prepare_java() {
         echo "Missing Java 17. Downloading Temurin 17..."
         # 适用于 Linux x64
         local JAVA_URL="https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.10%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.10_7.tar.gz"
-        sudo mkdir -p "$JAVA_HOME"
-        curl -L "$JAVA_URL" | sudo tar -xzC "$JAVA_HOME" --strip-components=1
+        mkdir -p "$JAVA_HOME"
+        curl -L "$JAVA_URL" | tar -xzC "$JAVA_HOME" --strip-components=1
         echo "✅ Java 17 安装完成"
     else
         echo "✅ Java 17 已存在"
@@ -26,14 +26,21 @@ prepare_android() {
         local SDK_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
         local TEMP_ZIP="/tmp/sdk.zip"
         
-        sudo mkdir -p "$ANDROID_HOME/cmdline-tools"
+        mkdir -p "$ANDROID_HOME/cmdline-tools"
         curl -L -o "$TEMP_ZIP" "$SDK_URL"
-        sudo unzip -q "$TEMP_ZIP" -d "$ANDROID_HOME/cmdline-tools"
-        sudo mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+        unzip -q "$TEMP_ZIP" -d "$ANDROID_HOME/cmdline-tools"
+        mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
         rm -f "$TEMP_ZIP"
 
-        # 自动接受协议并安装基础组件
-        echo "yes" | sudo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+        # 第一步：接受所有许可协议
+        yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$ANDROID_HOME" --licenses
+        # 第二步：安装组件
+        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;36.0.0"
         echo "✅ Android SDK 安装完成"
     else
         echo "✅ Android SDK 已存在"
@@ -56,7 +63,7 @@ build_apk() {
     # 如果更新了signingkey.jks需要通过/opt/temurin17/bin/keytool -list -v -keystore ehentai.jks 这个命令查看SHA256并更新repo.json的signingKeyFingerprint
 
     KEY_STORE_PASSWORD=ehentai \
-    ALIAS=mykey \
+    ALIAS=ehentai \
     KEY_PASSWORD=ehentai \
     ANDROID_HOME="$ANDROID_HOME" \
     JAVA_HOME="$JAVA_HOME" \
