@@ -1,18 +1,30 @@
 #!/bin/bash
+set -euo pipefail
 
 # 环境路径配置
-export JAVA_HOME="/opt/temurin17"
-export ANDROID_HOME="/opt/android-sdk"
+export JAVA_HOME="${JAVA_HOME:-/opt/temurin17}"
+export ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+java_ready() {
+    [ -x "$JAVA_HOME/bin/java" ] && "$JAVA_HOME/bin/java" -version >/dev/null 2>&1
+}
+
+android_sdk_ready() {
+    [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]
+}
 
 # --- 函数：安装 Java 17 ---
 prepare_java() {
-    if [ ! -d "$JAVA_HOME" ]; then
+    if ! java_ready; then
         echo "Missing Java 17. Downloading Temurin 17..."
         # 适用于 Linux x64
         local JAVA_URL="https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.10%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.10_7.tar.gz"
+        local TEMP_TAR="/tmp/temurin17.tar.gz"
         mkdir -p "$JAVA_HOME"
-        curl -L "$JAVA_URL" | tar -xzC "$JAVA_HOME" --strip-components=1
+        curl -fL --retry 3 -o "$TEMP_TAR" "$JAVA_URL"
+        tar -xzf "$TEMP_TAR" -C "$JAVA_HOME" --strip-components=1
+        rm -f "$TEMP_TAR"
         echo "✅ Java 17 安装完成"
     else
         echo "✅ Java 17 已存在"
@@ -21,20 +33,25 @@ prepare_java() {
 
 # --- 函数：安装 Android SDK ---
 prepare_android() {
-    if [ ! -d "$ANDROID_HOME" ]; then
+    if ! android_sdk_ready; then
         echo "Missing Android SDK. Installing to $ANDROID_HOME..."
         local SDK_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
         local TEMP_ZIP="/tmp/sdk.zip"
+        local TEMP_SDK_DIR="/tmp/android-sdk-cmdline-tools"
         
-        mkdir -p "$ANDROID_HOME/cmdline-tools"
-        curl -L -o "$TEMP_ZIP" "$SDK_URL"
-        unzip -q "$TEMP_ZIP" -d "$ANDROID_HOME/cmdline-tools"
-        mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+        mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+        rm -rf "$TEMP_SDK_DIR"
+        curl -fL --retry 3 -o "$TEMP_ZIP" "$SDK_URL"
+        unzip -q "$TEMP_ZIP" -d "$TEMP_SDK_DIR"
+        cp -a "$TEMP_SDK_DIR/cmdline-tools/." "$ANDROID_HOME/cmdline-tools/latest/"
         rm -f "$TEMP_ZIP"
+        rm -rf "$TEMP_SDK_DIR"
 
         # 第一步：接受所有许可协议
+        set +o pipefail
         yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             --sdk_root="$ANDROID_HOME" --licenses
+        set -o pipefail
         # 第二步：安装组件
         "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             --sdk_root="$ANDROID_HOME" \

@@ -19,7 +19,6 @@ jobs:
 
     env:
       TZ: Asia/Shanghai
-      BUILD_DATE: ${{ github.run_id }}   # 占位，后面覆盖
 
     steps:
       - name: Checkout main branch
@@ -34,18 +33,38 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
-      - name: Set build date
+      - name: Set release version
         run: |
-          echo "BUILD_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
+          current_version="$(jq -r '.[0].version' index.json)"
+          IFS='.' read -r major minor patch <<< "$current_version"
+
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+            if [ "$patch" -gt 999 ]; then
+              minor=$((minor + 1))
+              patch=0
+            fi
+          fi
+
+          version_name="${major}.${minor}.${patch}"
+          version_code=$((major * 1000000 + minor * 1000 + patch))
+
+          echo "VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
       - name: Prepare signing key
         run: |
           echo "${{ secrets.SIGNING_KEY }}" | base64 -d > signingkey.jks
-      - name: Update index
+      - name: Update version metadata
         run: |
-          sed -i "s/^\([[:space:]]*extVersionCode[[:space:]]*=[[:space:]]*\).*/\1${BUILD_DATE}/" src/all/ehentai/build.gradle
-          jq --arg d "$BUILD_DATE" '
-          .[0].version = "1.4.\($d)" |
-          .[0].apk = "tachiyomi-all.ehentai-v1.4.\($d).apk"
+          sed -i "s/^\([[:space:]]*extVersionName[[:space:]]*=[[:space:]]*\).*/\1'${VERSION_NAME}'/" src/all/ehentai/build.gradle
+          sed -i "s/^\([[:space:]]*extVersionCode[[:space:]]*=[[:space:]]*\).*/\1${VERSION_CODE}/" src/all/ehentai/build.gradle
+          jq --arg version "$VERSION_NAME" --argjson code "$VERSION_CODE" '
+          .[0].version = $version |
+          .[0].code = $code |
+          .[0].apk = "tachiyomi-all.ehentai-v\($version).apk"
           ' index.json > /tmp/index.json && mv /tmp/index.json index.json
           jq -c . index.json > index.min.json
       - name: Update etagdb
@@ -69,7 +88,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --staged --quiet || git commit -m "auto build ${BUILD_DATE}"
+          git diff --staged --quiet || git commit -m "auto build ${VERSION_NAME} [skip ci]"
           git push
       - name: Clean up CI files
         if: always()
