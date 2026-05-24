@@ -63,23 +63,23 @@ fun ExGalleryMetadata.copyTo(manga: SManga) {
 
     // Build a nice looking description out of what we know
     val titleDesc = StringBuilder()
-    title?.let { titleDesc += "Title: $it\n" }
+    title?.let { titleDesc += "标题: $it\n" }
     altTitle?.let { titleDesc += "Alternate Title: $it\n" }
 
     val detailsDesc = StringBuilder()
-    uploader?.let { detailsDesc += "Uploader: $it\n" }
-    datePosted?.let { detailsDesc += "Posted: ${EX_DATE_FORMAT.format(Date(it))}\n" }
-    visible?.let { detailsDesc += "Visible: $it\n" }
+    uploader?.let { detailsDesc += "上传: $it\n" }
+    datePosted?.let { detailsDesc += "更新: ${EX_DATE_FORMAT.format(Date(it))}\n" }
+    visible?.let { detailsDesc += "可见: $it\n" }
     language?.let {
-        detailsDesc += "Language: $it"
+        detailsDesc += "语言: $it"
         if (translated == true) detailsDesc += " TR"
         detailsDesc += "\n"
     }
-    size?.let { detailsDesc += "File Size: ${humanReadableByteCount(it, true)}\n" }
-    length?.let { detailsDesc += "Length: $it pages\n" }
-    favorites?.let { detailsDesc += "Favorited: $it times\n" }
+    size?.let { detailsDesc += "大小: ${humanReadableByteCount(it, true)}\n" }
+    length?.let { detailsDesc += "页数: $it\n" }
+    favorites?.let { detailsDesc += "收藏: $it\n" }
     averageRating?.let {
-        detailsDesc += "Rating: $it"
+        detailsDesc += "评分: $it"
         ratingCount?.let { count -> detailsDesc += " ($count)" }
         detailsDesc += "\n"
     }
@@ -91,7 +91,7 @@ fun ExGalleryMetadata.copyTo(manga: SManga) {
         .joinToString(separator = "\n")
 }
 
-private fun buildTagsDescription(metadata: ExGalleryMetadata) = StringBuilder("Tags:\n").apply {
+private fun buildTagsDescription(metadata: ExGalleryMetadata) = StringBuilder("标签:\n").apply {
     val translatedTags = ETagTranslations.translate(metadata.tags)
 
     // BiConsumer only available in Java 8, we have to use destructuring here
