@@ -1,8 +1,8 @@
 ext {
     extName = 'E-Hentai'
     extClass = '.EHFactory'
-    extVersionName = '1.5.23'
-    extVersionCode = 20260023
+    extVersionName = '1.5.24'
+    extVersionCode = 20260024
     isNsfw = true
 }
 
